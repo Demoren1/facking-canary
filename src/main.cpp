@@ -15,27 +15,23 @@ int main()
     GET_INFO_FOR_DUMP(stk);
     stack_ctor(&stack, capacity) || ASSERTED();
     
-    for (int i = 1; i < 100; i++)
+    for (int i = 1; i < 10; i++)
     {
         GET_INFO_FOR_DUMP(stk);
-        stack_push(&stack, i) || ASSERTED();
+        stack_push(&stack, i*i) || ASSERTED();
     }
-
-    SHOW_ELEMENTS(stack);
 
     elem value  = 0;
 
-    for (int i = 1; i < 50; i++)
+    for (int i = 1; i < 5; i++)
     {
         GET_INFO_FOR_DUMP(stk);
         stack_pop(&stack, &value) || ASSERTED();
     }
+
 
     GET_INFO_FOR_DUMP(stk);
     stack_detor(&stack);
 
     return 0;
 }
-
-
-//setvbuf(file ptr, NULL, _IO_BFB_, 0)

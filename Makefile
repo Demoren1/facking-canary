@@ -13,8 +13,8 @@ CFLAGS=#-D _DEBUG -ggdb3 -std=c++20 -O0 -Wall -Wextra -Weffc++ -Waggressive-loop
 -fno-omit-frame-pointer -fPIE -fsanitize=address,alignment,bool,bounds,enum,float-cast-overflow,float-divide-by-zero,integer-divide-by-zero,leak,nonnull-attribute,null,object-size,return,returns-nonnull-attribute,shift,signed-integer-overflow,undefined,unreachable,vla-bound,vptr \
 -pie -Wlarger-than=8192 -Wstack-usage=8192
 
-stack : $(OBJ_DIR)main.o $(OBJ_DIR)stack_func.o $(OBJ_DIR)input_output.o
-	@$(CC) $(CFLAGS) $(OBJ_DIR)main.o $(OBJ_DIR)stack_func.o $(OBJ_DIR)input_output.o -o stack
+stack : $(OBJ_DIR)main.o $(OBJ_DIR)stack_func.o $(OBJ_DIR)input_output.o $(OBJ_DIR)debug_funcs.o
+	@$(CC) $(CFLAGS) $(OBJ_DIR)main.o $(OBJ_DIR)stack_func.o $(OBJ_DIR)input_output.o $(OBJ_DIR)debug_funcs.o -o stack
 
 $(OBJ_DIR)main.o : $(SRC_DIR)main.cpp 
 	@$(CC) $(CFLAGS) $(SRC_DIR)main.cpp -c -o $(OBJ_DIR)main.o
@@ -24,6 +24,9 @@ $(OBJ_DIR)stack_func.o : $(SRC_DIR)stack_func.cpp
 
 $(OBJ_DIR)input_output.o : $(SRC_DIR)input_output.cpp
 	@$(CC) $(CFLAGS) $(SRC_DIR)input_output.cpp -c -o $(OBJ_DIR)input_output.o
+
+$(OBJ_DIR)debug_funcs.o : $(SRC_DIR)debug_funcs.cpp
+	@$(CC) $(CFLAGS) $(SRC_DIR)debug_funcs.cpp -c -o $(OBJ_DIR)debug_funcs.o
 
 mkdir :
 	@mkdir $(OBJ_DIR) -p
