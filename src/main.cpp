@@ -9,28 +9,29 @@ FILE *log_file = no_buff_open("log_file.txt", "w");
 
 int main()
 {   
-    ssize_t capacity = 5;
+    ssize_t capacity = 10;
     Stack stack= {};
 
-    GET_INFO_FOR_DUMP(stk);
-    stack_ctor(&stack, capacity) || ASSERTED();
-    
-    for (int i = 1; i < 10; i++)
+    GET_INFO_FOR_DUMP(stack); //todo redo as define in ctor
+    STACK_CTOR(&stack, capacity) || ASSERTED();
+
+    for (int i = 1; i < 100; i++)
     {
-        GET_INFO_FOR_DUMP(stk);
         stack_push(&stack, i*i) || ASSERTED();
     }
+    
 
     elem value  = 0;
 
-    for (int i = 1; i < 5; i++)
+    for (int i = 1; i < 80; i++)
     {
-        GET_INFO_FOR_DUMP(stk);
         stack_pop(&stack, &value) || ASSERTED();
     }
 
+    stack.l_canary = 31;
+    SHOW_ELEMENTS(stack);
+    ASSERT_OK(&stack);
 
-    GET_INFO_FOR_DUMP(stk);
     stack_detor(&stack);
 
     return 0;

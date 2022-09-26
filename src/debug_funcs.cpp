@@ -12,51 +12,25 @@ unsigned int stack_error(Stack *stk)
     assert(stk != NULL);
 
     unsigned int code_of_error = 0;
-
-    if (!stk->data) 
-    {
-        code_of_error |= STACK_ERROR_MEMNULL_FLAG;
-    }
     
-    if(stk->size < 0)
-    {
-        code_of_error |= STACK_ERROR_SIZE_SMALLER_ZERO;
-    }
+    code_of_error |= CHECK(!stk->data, STACK_ERROR_MEMNULL_FLAG); 
     
-    if (stk->capacity < 0)
-    {
-        code_of_error |= STACK_ERROR_CAPACITY_SMALLER_ZERO;
-    }
+    code_of_error |= CHECK(stk->size < 0, STACK_ERROR_SIZE_SMALLER_ZERO);
+    
+    code_of_error |= CHECK(stk->capacity < 0, STACK_ERROR_CAPACITY_SMALLER_ZERO);
  
-    if (stk->size > stk->capacity)
-    {
-        code_of_error |= STACK_ERROR_SIZE_BIGGER_CAPACITY;
-    }
+    code_of_error |= CHECK(stk->size > stk->capacity, STACK_ERROR_SIZE_BIGGER_CAPACITY);
 
-    if (stk->r_canary != STRUCT_CANARY)
-    {
-        code_of_error |= STACK_ERROR_LEFT_CANARY_DIED;
-    }
-
-    if (stk->r_canary != STRUCT_CANARY)
-    {
-        code_of_error |= STACK_ERROR_RIGHT_CANARY_DIED;
-    }
-
-    if ((int) *(stk->start_arr) != ARR_CANARY)
-    {
-        code_of_error |= STACK_ERROR_ARR_LEFT_CANARY_DIED;
-    }
-
-    if ((int) *(stk->end_arr) != ARR_CANARY)
-    {
-        code_of_error |= STACK_ERROR_ARR_RIGHT_CANARY_DIED;
-    }
-
-    if (stk->hash != stack_hash_func_arr(stk->data, stk->size))
-    {
-        code_of_error |= STACK_ERROR_WRONG_HASH;
-    }
+    code_of_error |= CHECK(stk->l_canary != STRUCT_CANARY, STACK_ERROR_LEFT_CANARY_DIED);
+    
+    code_of_error |= CHECK(stk->r_canary != STRUCT_CANARY, STACK_ERROR_RIGHT_CANARY_DIED);
+    
+    code_of_error |= CHECK((size_t) *(stk->start_arr) != ARR_CANARY, STACK_ERROR_ARR_LEFT_CANARY_DIED);
+    
+    code_of_error |= CHECK((size_t) *(stk->end_arr) != ARR_CANARY, STACK_ERROR_ARR_RIGHT_CANARY_DIED);
+    
+    code_of_error |= CHECK(stk->hash != stack_hash_func_arr(stk->data, stk->size), STACK_ERROR_WRONG_HASH);
+    
     return code_of_error;
 
 }
@@ -125,15 +99,15 @@ void stack_dump(Stack *stk, const char* name_of_inner_func, const char* name_of_
                       stk->size, stk->capacity, stk->data, (int) *(stk->start_arr), (int) *(stk->end_arr), stk->previous_hash, stk->hash);
     for (int i = 0; i < stk->capacity; i++)
     {
-        if (stk->data[i] != 0)
-            fprintf(log_file," * [%d] = %g\n", i, stk->data[i]);
-        else    
+        if (isnan(stk->data[i])) 
             fprintf(log_file,"   [%d] = %s\n", i, "NAN(POISON)");
+        else if (stk->data[i] != 0)
+            fprintf(log_file," * [%d] = %g\n", i, stk->data[i]);
     } 
 
 }
 
-elem stack_hash_func_arr(elem *arr, ssize_t size)
+elem stack_hash_func_arr(elem *arr, ssize_t size)       //todo general func
 {
     elem s = 0;
     for (int i = 0; i < size; i++)
