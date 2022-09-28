@@ -29,7 +29,9 @@ unsigned int stack_error(Stack *stk)
     
     code_of_error |= CHECK((size_t) *(stk->end_arr) != ARR_CANARY, STACK_ERROR_ARR_RIGHT_CANARY_DIED);
     
-    code_of_error |= CHECK(stk->hash != stack_hash_func_arr(stk->data, stk->size), STACK_ERROR_WRONG_HASH);
+    code_of_error |= CHECK(stk->hash != hash(stk->data, stk->capacity * sizeof(elem)), STACK_ERROR_WRONG_HASH);
+
+    code_of_error |= CHECK(stk->hash_struct != hash(stk, sizeof(Stack) - sizeof(stk->hash_struct)), STACK_ERROR_WRONG_STRUCT_HASH);
     
     return code_of_error;
 
@@ -81,6 +83,11 @@ void stack_err_decoder(unsigned int code_of_error)
     {
         fputs("\nERROR: wrong hash\n", log_file);
     }
+
+    if(code_of_error & STACK_ERROR_WRONG_STRUCT_HASH)
+    {
+        fputs("\nERROR: wrong struct hash\n", log_file);
+    }
 }
 
 void stack_dump(Stack *stk, const char* name_of_inner_func, const char* name_of_inner_file, int num_of_inner_str, unsigned int flag_of_error)
@@ -92,11 +99,11 @@ void stack_dump(Stack *stk, const char* name_of_inner_func, const char* name_of_
     fprintf(log_file, "{\n \t size              = %zd;\n"           \
                           "\t capacity          = %zd \n"           \
                           "\t data[%p]         \n"                  \
-                          "\t left_arr_canary   = %d\n"             \
-                          "\t right_arr_canary  = %d\n"             \
-                          "\t previous hash     = %g\n"             \
-                          "\t hash              = %g\n",
-                      stk->size, stk->capacity, stk->data, (int) *(stk->start_arr), (int) *(stk->end_arr), stk->previous_hash, stk->hash);
+                          "\t left_arr_canary   = 0x%0x\n"             \
+                          "\t right_arr_canary  = 0x%0x\n"             \
+                          "\t hash              = 0x%0x\n"             \
+                          "\t struct hash       = 0x%0x\n",
+                      stk->size, stk->capacity, stk->data, (int) *(stk->start_arr), (int) *(stk->end_arr), stk->hash, stk->hash_struct);
     for (int i = 0; i < stk->capacity; i++)
     {
         if (isnan(stk->data[i])) 
@@ -107,12 +114,24 @@ void stack_dump(Stack *stk, const char* name_of_inner_func, const char* name_of_
 
 }
 
-elem stack_hash_func_arr(elem *arr, ssize_t size)       //todo general func
+
+int hash(void* v_arr, size_t size)
 {
-    elem s = 0;
+    char* arr = (char*) v_arr;
+
+    int hash = 0;
+    int tmp  = 0;
     for (int i = 0; i < size; i++)
     {
-        s += arr[i] / (fabs(s)+1);
+        hash += ((int) arr[i]) & 0x0000000F;
+
+        int tmp1 = 0xFFF00000;
+        int tmp2 = 0x00000FFF;
+
+        tmp1 = ((hash & tmp1) >> 20) & tmp2;
+        hash <<= 12;
+        hash |= tmp1; 
+
     }
-    return s;
+    return hash;
 }

@@ -39,8 +39,8 @@ struct Stack
     ssize_t capacity;
     info_of_funcs dump_info;
     size_t r_canary;
-    elem hash;
-    elem previous_hash;   //todo think about delete
+    int hash;
+    int hash_struct;
 };
 
 unsigned int stack_error(Stack *stk);
@@ -63,12 +63,12 @@ void stack_detor(Stack *stk);
 
 void stack_dump(Stack *stk, const char* name_of_inner_func, const char* name_of_inner_file, int num_of_inner_str, unsigned int flag_of_error);
 
-elem stack_hash_func_arr(elem *arr, ssize_t size);     //todo stack_hash_func(void *)
-
+int hash(void* arr, size_t size);
 // ToDo:
 // hash (void*, size) // не связана со стеком
 // rehash (stk) {hash (stk); hash (stk->buf)}
 // offsetof
+void stack_rehash(Stack *stk);
 
 FILE* no_buff_open(const char* name_file, const char* regime);
 

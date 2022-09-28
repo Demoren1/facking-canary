@@ -11,3 +11,4 @@ FILE* no_buff_open(const char* name_file, const char* regime)
     
     return file_ptr;
 }
+
