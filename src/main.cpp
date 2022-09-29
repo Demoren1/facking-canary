@@ -5,17 +5,12 @@
 #include "../include/stack_objects.h"
 #include "../include/debug.h"
 
+int test_func(Stack *stk);
+
 FILE *log_file = no_buff_open("log_file.txt", "w");
 
 int main()
 {   
-    int tmp1 = 0xABCDDCBA;
-    int tmp2 = 0xFFF00000;
-    int tmp3 = 0x00000FFF;
-    int tmp4 = 0;
-    tmp4 += 8;
-    tmp2 = ((tmp1 & tmp2) >> 20) & tmp3;
-
     ssize_t capacity = 10;
     Stack stack= {};
 
@@ -29,15 +24,23 @@ int main()
 
     elem value  = 0;
 
-    for (int i = 1; i < 80; i++)
+    for (int i = 1; i < 50; i++)
     {
         stack_pop(&stack, &value) || ASSERTED();
     }
     
     SHOW_ELEMENTS(stack);
-    ASSERT_OK(&stack);
+
+    //test_func(&stack);
 
     stack_detor(&stack);
 
     return 0;
+}
+
+int test_func(Stack *stk)
+{
+    stk->l_canary = 0;
+    ASSERT_OK(stk);
+    return 1;
 }

@@ -11,20 +11,23 @@ int stack_ctor(Stack *stk, ssize_t capacity, const char* name_function, const ch
 {   
     assert(stk != NULL);
     
-    stk->start_arr = (size_t*) calloc(1, capacity * sizeof(elem) + 2 * sizeof(ARR_CANARY));     
+    stk->start_arr    = (size_t*) calloc(1, capacity * sizeof(elem) + 2 * sizeof(ARR_CANARY));     
     stk->start_arr[0] = ARR_CANARY;
-    stk->data = (elem*)((char*)stk->start_arr + sizeof(ARR_CANARY));
-    stk->end_arr = (size_t*) ((char*)stk->start_arr +  capacity * sizeof(elem) + sizeof(ARR_CANARY));
-    stk->end_arr[0] = ARR_CANARY;
+    stk->data         = (elem*)((char*)stk->start_arr + sizeof(ARR_CANARY));
+    stk->end_arr      = (size_t*) ((char*)stk->start_arr +  capacity * sizeof(elem) + sizeof(ARR_CANARY));
+    stk->end_arr[0]   = ARR_CANARY;
     
-    stk->capacity = capacity;
-    stk->size = 0;
+    stk->capacity      = capacity;
+    stk->size          = 0;
+    stk->code_of_error = 0;
     
     stk->r_canary = STRUCT_CANARY;
     stk->l_canary = STRUCT_CANARY;
     
+    stk->dump_info ={};
+    
     stack_rehash(stk);
-
+    
     stack_dump_info_ctor(stk, name_function, name_file, name_variable, num_line) || ASSERTED();
 
     stack_rehash(stk);
@@ -156,5 +159,5 @@ int stack_poison_get(Stack *stk, int size, int capacity)
 void stack_rehash(Stack *stk)
 {   
     stk->hash        = hash(stk->data, stk->capacity * sizeof(elem));
-    stk->hash_struct = hash(stk, sizeof(Stack) - sizeof(stk->hash_struct)); 
+    stk->hash_struct = hash(stk, sizeof(Stack) - sizeof(stk->hash_struct) - 4);
 }

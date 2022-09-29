@@ -3,15 +3,11 @@
 
 #define ASSERT_OK(stk)      if (stack_error(stk) != 0)                                                      \
                             {                                                                               \
-                                stack_err_decoder(stack_error(stk));                                        \
+                                stack_err_decoder(stk->code_of_error);                                        \
                                 stack_dump(stk, __FUNCTION__, __FILE__, __LINE__, stack_error(stk));        \
                                 return 0;                                                                   \
                             }                                                                               \
 
-#define GET_INFO_FOR_DUMP(stack)  stack.dump_info.name_of_func     = __FUNCTION__;    \
-                                  stack.dump_info.name_of_file     = __FILE__;        \
-                                  stack.dump_info.name_of_variable = #stack;          \
-                                  stack.dump_info.num_of_str       = __LINE__;
 #define VAR_INFO(stack) __FUNCTION__, __FILE__, #stack, __LINE__ 
 
 #define STACK_CTOR(stack, capacity) stack_ctor(stack, capacity, VAR_INFO(stack))
@@ -38,8 +34,9 @@ struct Stack
     ssize_t size;
     ssize_t capacity;
     info_of_funcs dump_info;
-    size_t r_canary;
     int hash;
+    unsigned int code_of_error;
+    size_t r_canary;
     int hash_struct;
 };
 
@@ -64,10 +61,7 @@ void stack_detor(Stack *stk);
 void stack_dump(Stack *stk, const char* name_of_inner_func, const char* name_of_inner_file, int num_of_inner_str, unsigned int flag_of_error);
 
 int hash(void* arr, size_t size);
-// ToDo:
-// hash (void*, size) // не связана со стеком
-// rehash (stk) {hash (stk); hash (stk->buf)}
-// offsetof
+
 void stack_rehash(Stack *stk);
 
 FILE* no_buff_open(const char* name_file, const char* regime);

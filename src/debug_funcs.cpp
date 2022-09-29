@@ -11,30 +11,27 @@ unsigned int stack_error(Stack *stk)
 {
     assert(stk != NULL);
 
-    unsigned int code_of_error = 0;
+    stk->code_of_error |= CHECK(stk->hash_struct != hash(stk, sizeof(Stack) - sizeof(stk->hash_struct) - 4), STACK_ERROR_WRONG_STRUCT_HASH);
+
+    stk->code_of_error |= CHECK(!stk->data, STACK_ERROR_MEMNULL_FLAG); 
     
-    code_of_error |= CHECK(!stk->data, STACK_ERROR_MEMNULL_FLAG); 
+    stk->code_of_error |= CHECK(stk->size < 0, STACK_ERROR_SIZE_SMALLER_ZERO);
     
-    code_of_error |= CHECK(stk->size < 0, STACK_ERROR_SIZE_SMALLER_ZERO);
-    
-    code_of_error |= CHECK(stk->capacity < 0, STACK_ERROR_CAPACITY_SMALLER_ZERO);
+    stk->code_of_error |= CHECK(stk->capacity < 0, STACK_ERROR_CAPACITY_SMALLER_ZERO);
  
-    code_of_error |= CHECK(stk->size > stk->capacity, STACK_ERROR_SIZE_BIGGER_CAPACITY);
+    stk->code_of_error |= CHECK(stk->size > stk->capacity, STACK_ERROR_SIZE_BIGGER_CAPACITY);
 
-    code_of_error |= CHECK(stk->l_canary != STRUCT_CANARY, STACK_ERROR_LEFT_CANARY_DIED);
+    stk->code_of_error |= CHECK(stk->l_canary != STRUCT_CANARY, STACK_ERROR_LEFT_CANARY_DIED);
     
-    code_of_error |= CHECK(stk->r_canary != STRUCT_CANARY, STACK_ERROR_RIGHT_CANARY_DIED);
+    stk->code_of_error |= CHECK(stk->r_canary != STRUCT_CANARY, STACK_ERROR_RIGHT_CANARY_DIED);
     
-    code_of_error |= CHECK((size_t) *(stk->start_arr) != ARR_CANARY, STACK_ERROR_ARR_LEFT_CANARY_DIED);
+    stk->code_of_error |= CHECK((size_t) *(stk->start_arr) != ARR_CANARY, STACK_ERROR_ARR_LEFT_CANARY_DIED);
     
-    code_of_error |= CHECK((size_t) *(stk->end_arr) != ARR_CANARY, STACK_ERROR_ARR_RIGHT_CANARY_DIED);
+    stk->code_of_error |= CHECK((size_t) *(stk->end_arr) != ARR_CANARY, STACK_ERROR_ARR_RIGHT_CANARY_DIED);
     
-    code_of_error |= CHECK(stk->hash != hash(stk->data, stk->capacity * sizeof(elem)), STACK_ERROR_WRONG_HASH);
+    stk->code_of_error |= CHECK(stk->hash != hash(stk->data, stk->capacity * sizeof(elem)), STACK_ERROR_WRONG_HASH);
 
-    code_of_error |= CHECK(stk->hash_struct != hash(stk, sizeof(Stack) - sizeof(stk->hash_struct)), STACK_ERROR_WRONG_STRUCT_HASH);
-    
-    return code_of_error;
-
+    return stk->code_of_error;
 }
 
 void stack_err_decoder(unsigned int code_of_error)
@@ -96,14 +93,16 @@ void stack_dump(Stack *stk, const char* name_of_inner_func, const char* name_of_
     fprintf(log_file, "Stack[%p] (%s) \"%s\" at %s() at %s (%zd) \n", stk, (flag_of_error > 0) ? "ERROR" : "OK",
         stk->dump_info.name_of_variable, stk->dump_info.name_of_func, stk->dump_info.name_of_file, stk->dump_info.num_of_str);
 
-    fprintf(log_file, "{\n \t size              = %zd;\n"           \
-                          "\t capacity          = %zd \n"           \
-                          "\t data[%p]         \n"                  \
-                          "\t left_arr_canary   = 0x%0x\n"             \
-                          "\t right_arr_canary  = 0x%0x\n"             \
-                          "\t hash              = 0x%0x\n"             \
-                          "\t struct hash       = 0x%0x\n",
-                      stk->size, stk->capacity, stk->data, (int) *(stk->start_arr), (int) *(stk->end_arr), stk->hash, stk->hash_struct);
+    fprintf(log_file, "{\n \t size                = %zd;\n"           \
+                          "\t capacity            = %zd \n"           \
+                          "\t data[%p]                 \n"            \
+                          "\t left_arr_canary     = 0x%0x\n"          \
+                          "\t right_arr_canary    = 0x%0x\n"          \
+                          "\t left_struct_canary  = 0x%0lx\n"         \
+                          "\t right_struct_canary = 0x%0lx\n"         \
+                          "\t hash                = 0x%0x\n"          \
+                          "\t struct hash         = 0x%0x\n",
+                      stk->size, stk->capacity, stk->data, (int) *(stk->start_arr), (int) *(stk->end_arr), stk->l_canary, stk->r_canary, stk->hash, stk->hash_struct);
     for (int i = 0; i < stk->capacity; i++)
     {
         if (isnan(stk->data[i])) 
@@ -120,13 +119,13 @@ int hash(void* v_arr, size_t size)
     char* arr = (char*) v_arr;
 
     int hash = 0;
-    int tmp  = 0;
+    unsigned int tmp1  = 0, tmp2 = 0;
     for (int i = 0; i < size; i++)
     {
         hash += ((int) arr[i]) & 0x0000000F;
 
-        int tmp1 = 0xFFF00000;
-        int tmp2 = 0x00000FFF;
+        tmp1 = 0xFFF00000;
+        tmp2 = 0x00000FFF;
 
         tmp1 = ((hash & tmp1) >> 20) & tmp2;
         hash <<= 12;
