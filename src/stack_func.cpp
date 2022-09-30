@@ -11,12 +11,17 @@ int stack_ctor(Stack *stk, ssize_t capacity, const char* name_function, const ch
 {   
     assert(stk != NULL);
     
-    stk->start_arr    = (size_t*) calloc(1, capacity * sizeof(elem) + 2 * sizeof(ARR_CANARY));     
-    stk->start_arr[0] = ARR_CANARY;
-    stk->data         = (elem*)((char*)stk->start_arr + sizeof(ARR_CANARY));
-    stk->end_arr      = (size_t*) ((char*)stk->start_arr +  capacity * sizeof(elem) + sizeof(ARR_CANARY));
-    stk->end_arr[0]   = ARR_CANARY;
-    
+    stk->flag++;
+    if (stk->flag != 1)
+    {
+        stk->code_of_error |= STACK_ERROR_DOUBLE_CTOR;
+    }
+
+    stk->data   = (elem*) calloc(1, capacity * sizeof(elem) + 2 * sizeof(canary_t)); // todo rejimes
+    *((canary_t*)stk->data) = ARR_CANARY; 
+    stk->data = (elem*)((canary_t*)stk->data + 1);     
+    *((canary_t*)((char*)stk->data +  capacity * sizeof(elem) + sizeof(canary_t))) = ARR_CANARY;
+
     stk->capacity      = capacity;
     stk->size          = 0;
     stk->code_of_error = 0;
@@ -25,8 +30,10 @@ int stack_ctor(Stack *stk, ssize_t capacity, const char* name_function, const ch
     stk->l_canary = STRUCT_CANARY;
     
     stk->dump_info ={};
-    
+
     stack_rehash(stk);
+
+    ASSERT_OK(stk);
     
     stack_dump_info_ctor(stk, name_function, name_file, name_variable, num_line) || ASSERTED();
 
@@ -35,7 +42,7 @@ int stack_ctor(Stack *stk, ssize_t capacity, const char* name_function, const ch
     stack_poison_get(stk, stk->size, stk->capacity) || ASSERTED();
     
     ASSERT_OK(stk);
-    return 1;
+    return 1; //todo return error to user
 }   
 
 int stack_dump_info_ctor(Stack *stk, const char* name_function, const char* name_file, const char* name_variable, int num_line)
@@ -55,7 +62,7 @@ int stack_dump_info_ctor(Stack *stk, const char* name_function, const char* name
 
 int stack_push(Stack *stk, elem value)
 {   
-    assert(stk != NULL);
+    ASSERT_OK(stk);
 
     if (stk->size + 1 >= stk->capacity)
     {
@@ -76,16 +83,14 @@ int stack_push(Stack *stk, elem value)
     return 1;
 }
 
-int stack_pop(Stack *stk, elem *value)
+elem stack_pop(Stack *stk, int *pop_error)
 {
-    assert(stk != NULL);
     ASSERT_OK(stk);
 
-    stack_rehash(stk);
+    elem value = 0;
 
     if (stk->size <= 0)
     {
-        fprintf(log_file, "You attained the end of stack\n");
         stk->size = -1; 
         ASSERT_OK(stk);
         return -1;
@@ -98,61 +103,71 @@ int stack_pop(Stack *stk, elem *value)
         stack_resize(stk, stk->capacity / 2) || ASSERTED();
     }
 
-    *value = stk->data[stk->size-1];
+    value = stk->data[stk->size-1];
 
     stack_poison_get(stk, stk->size, stk->capacity) || ASSERTED();
     stk->size--;
 
     stack_rehash(stk);
     ASSERT_OK(stk);
-    return 1;
+    return value;
 }
 
-void stack_detor(Stack *stk)
+int stack_dtor(Stack *stk)
 {
-    free(stk->start_arr);
+    ASSERT_OK(stk);
+    stack_poison_get(stk, 0, stk->capacity);
+    stk->flag++;
     stk->capacity = -1;
     stk->size     = -1;
+    if (stk->flag != 2)
+    {
+        stk->code_of_error |= STACK_ERROR_DOUBLE_DTOR;
+    }
+
+    free((char*) stk->data - sizeof(canary_t));
+
+    return 0;
 }
 
 int stack_resize(Stack *stk, ssize_t new_capacity)
 {   
     ASSERT_OK(stk);
 
-    size_t* tmp_ptr = (size_t*) realloc(stk->start_arr, new_capacity * sizeof(elem) + 2 * sizeof(ARR_CANARY));
+    elem* tmp_ptr = (elem*) realloc((char*)stk->data - sizeof(canary_t), new_capacity * sizeof(elem) + 2 * sizeof(canary_t));
 
     if (tmp_ptr == NULL)
     {
-        stk->capacity = -1;                               //todo add error_code in stack struct or return error code or global variable
+        stk->capacity = -1;                               
         return 0;
     }
-
-    stk->start_arr = tmp_ptr;
-    stk->end_arr = (size_t*) ((char*)stk->start_arr +  sizeof(elem)*new_capacity + sizeof(ARR_CANARY));
-    stk->end_arr[0] = ARR_CANARY;
-    stk->data = (elem*)((char*)stk->start_arr + sizeof(ARR_CANARY));
+    stk->data     = tmp_ptr;
     stk->capacity = new_capacity;
-    stack_rehash(stk);
 
+    *((canary_t*)stk->data) = ARR_CANARY;
+    stk->data   = (elem*)((canary_t*)stk->data + 1);     
+    *((canary_t*)((char*)stk->data +  new_capacity * sizeof(elem) + sizeof(canary_t))) = ARR_CANARY;
+
+    stack_rehash(stk);
+    
     stack_poison_get(stk, stk->size, stk->capacity) || ASSERTED();
+    
     ASSERT_OK(stk);
-    fprintf(log_file,"now size is %zd and capacity is %zd \n\n", stk->size, stk->capacity);
 
     return 1;
 }
 
-int stack_poison_get(Stack *stk, int size, int capacity)
+int stack_poison_get(Stack *stk, size_t size, size_t capacity)
 {
     ASSERT_OK(stk);
-
-    for (int i = size; i < capacity; i++)
+    size_t i = size;
+    for (i; i < capacity; i++)
     {
-        stk->data[i] = NAN;
+        *(stk->data + i) = NAN;
     }
 
     stack_rehash(stk);
     ASSERT_OK(stk);
-    
     return 1;
 }
 

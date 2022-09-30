@@ -20,20 +20,20 @@ int main()
     {
         stack_push(&stack, i*i) || ASSERTED();
     }
-    
 
-    elem value  = 0;
+    int pop_error  = 0;
 
     for (int i = 1; i < 50; i++)
     {
-        stack_pop(&stack, &value) || ASSERTED();
+        stack_pop(&stack, &pop_error) || ASSERTED();
+        !pop_error || ASSERTED();
     }
     
     SHOW_ELEMENTS(stack);
 
-    //test_func(&stack);
+    test_func(&stack);
 
-    stack_detor(&stack);
+    stack_dtor(&stack); //todo ctor-dtor
 
     return 0;
 }

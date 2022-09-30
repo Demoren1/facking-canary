@@ -3,7 +3,7 @@
 
 #define ASSERT_OK(stk)      if (stack_error(stk) != 0)                                                      \
                             {                                                                               \
-                                stack_err_decoder(stk->code_of_error);                                        \
+                                stack_err_decoder(stk->code_of_error);                                      \
                                 stack_dump(stk, __FUNCTION__, __FILE__, __LINE__, stack_error(stk));        \
                                 return 0;                                                                   \
                             }                                                                               \
@@ -13,32 +13,32 @@
 #define STACK_CTOR(stack, capacity) stack_ctor(stack, capacity, VAR_INFO(stack))
 
 const size_t STRUCT_CANARY     = 0xF00DB00B;  
-const size_t ARR_CANARY        = 0xFAABCCBA;   
+const size_t ARR_CANARY        = 0xABCDABEE;   
+typedef size_t canary_t;
 
 typedef double elem;
 
-struct info_of_funcs                
+typedef struct                 
 {
     const char* name_of_func;
     const char* name_of_file;
     const char* name_of_variable;
     size_t   num_of_str;
-};
+}info_of_funcs;
 
-struct Stack 
+typedef struct  
 {
     size_t l_canary;
-    size_t *start_arr;
     elem *data;
-    size_t *end_arr;
     ssize_t size;
     ssize_t capacity;
     info_of_funcs dump_info;
-    int hash;
+    long hash;
     unsigned int code_of_error;
+    char flag = 0;
     size_t r_canary;
-    int hash_struct;
-};
+    long hash_struct;
+}Stack;
 
 unsigned int stack_error(Stack *stk);
 
@@ -52,15 +52,15 @@ int stack_push(Stack *stk, elem value);
 
 int stack_resize(Stack *stk, ssize_t new_capacity);
 
-int stack_pop(Stack *stk, elem *value);
+elem stack_pop(Stack *stk, int *value);
 
-int stack_poison_get(Stack *stk, int size, int capacity);
+int stack_poison_get(Stack *stk, size_t size, size_t capacity);
 
-void stack_detor(Stack *stk);
+int stack_dtor(Stack *stk);
 
 void stack_dump(Stack *stk, const char* name_of_inner_func, const char* name_of_inner_file, int num_of_inner_str, unsigned int flag_of_error);
 
-int hash(void* arr, size_t size);
+long hash(void* arr, size_t size);
 
 void stack_rehash(Stack *stk);
 
