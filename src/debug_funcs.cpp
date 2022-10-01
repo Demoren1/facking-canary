@@ -21,6 +21,8 @@ unsigned int stack_error(Stack *stk)
     
         stk->code_of_error |= CHECK(stk->size > stk->capacity,      STACK_ERROR_SIZE_BIGGER_CAPACITY);
 
+        stk->code_of_error |= CHECK(stk->flag & WRONG_REALLOC,      STACK_ERROR_WRONG_REALLOC);
+
         ON_CANARY_PROT
         (
         stk->code_of_error |= CHECK(stk->l_canary != STRUCT_CANARY, STACK_ERROR_LEFT_CANARY_DIED);
@@ -90,6 +92,8 @@ void stack_err_decoder(unsigned int code_of_error)
     PRINT_ERROR(code_of_error, STACK_ERROR_DOUBLE_DTOR);
 
     PRINT_ERROR(code_of_error, STACK_ERROR_POP_FROM_VOID_STACK);
+
+    PRINT_ERROR(code_of_error, STACK_ERROR_WRONG_REALLOC);
 }
 
 void stack_dump(Stack *stk, const char* name_of_inner_func, const char* name_of_inner_file, int num_of_inner_str, unsigned int flag_of_error)

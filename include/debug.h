@@ -37,13 +37,15 @@ enum errors
     STACK_ERROR_DOUBLE_CTOR           = 1 << 10,
     STACK_ERROR_DOUBLE_DTOR           = 1 << 11,
     STACK_ERROR_STK_WRONG_PTR         = 1 << 12,
-    STACK_ERROR_POP_FROM_VOID_STACK   = 1 << 13
+    STACK_ERROR_POP_FROM_VOID_STACK   = 1 << 13,
+    STACK_ERROR_WRONG_REALLOC         = 1 << 14
 };
 
 enum errors_in_process
 {
     STACK_CREATED              = 1 << 0,
     STACK_DESTROYED            = 1 << 1,
+    WRONG_REALLOC              = 1 << 2
 };
 
 #define CHECK(condition, code_of_error)  (condition) ? code_of_error : 0;

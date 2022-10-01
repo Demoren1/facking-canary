@@ -17,7 +17,7 @@ int stack_ctor(Stack *stk, ssize_t capacity, const char* name_function, const ch
     }
 
     stk->data   = (elem*) calloc(1, capacity * sizeof(elem) ON_CANARY_PROT(+ 2 * sizeof(canary_t))); 
-    ON_CANARY_PROT
+    ON_CANARY_PROT 
     (
     (*((canary_t*)stk->data) = ARR_CANARY); 
     stk->data = (elem*)((canary_t*)stk->data + 1);     
@@ -145,8 +145,10 @@ int stack_resize(Stack *stk, ssize_t new_capacity)
     elem* tmp_ptr = (elem*) realloc((char*)stk->data ON_CANARY_PROT(- sizeof(canary_t)), new_capacity * sizeof(elem) ON_CANARY_PROT(+ 2 * sizeof(elem)));
     if (tmp_ptr == NULL)
     {   
-        stk->capacity = -1;        //todo add error                       
-        return 0;
+        stk->capacity = -1;
+        stk->flag |= WRONG_REALLOC;
+
+        ASSERT_OK(stk);
     }
 
     stk->data     = tmp_ptr;
