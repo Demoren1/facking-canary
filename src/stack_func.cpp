@@ -16,19 +16,25 @@ int stack_ctor(Stack *stk, ssize_t capacity, const char* name_function, const ch
         ASSERT_OK(stk);
     }
 
-    stk->data   = (elem*) calloc(1, capacity * sizeof(elem) + 2 * sizeof(canary_t)); // todo rejimes
-    *((canary_t*)stk->data) = ARR_CANARY; 
+    stk->data   = (elem*) calloc(1, capacity * sizeof(elem) ON_CANARY_PROT(+ 2 * sizeof(canary_t))); // todo rejimes
+    ON_CANARY_PROT
+    (
+    (*((canary_t*)stk->data) = ARR_CANARY); 
     stk->data = (elem*)((canary_t*)stk->data + 1);     
     *((canary_t*)((char*)stk->data +  capacity * sizeof(elem) + sizeof(canary_t))) = ARR_CANARY;
+    )
 
     stk->capacity      = capacity;
     stk->size          = 0;
     stk->code_of_error = 0;
     stk->flag         |= STACK_CREATED;
 
+    ON_CANARY_PROT
+    (
     stk->r_canary = STRUCT_CANARY;
     stk->l_canary = STRUCT_CANARY;
-    
+    )
+
     stk->dump_info ={};
 
     ON_HASH_PROT(stack_rehash(stk));       
@@ -127,7 +133,7 @@ int stack_dtor(Stack *stk)
     stk->capacity = -1;
     stk->size     = -1;
     
-    free((canary_t*) stk->data - 1);
+    free((char*) stk->data ON_CANARY_PROT(- sizeof(canary_t)));
 
     return 0;
 }
@@ -136,7 +142,7 @@ int stack_resize(Stack *stk, ssize_t new_capacity)
 {   
     ASSERT_OK(stk);
 
-    elem* tmp_ptr = (elem*) realloc((canary_t*)stk->data - 1, new_capacity * sizeof(elem) + 2 * sizeof(elem));
+    elem* tmp_ptr = (elem*) realloc((char*)stk->data ON_CANARY_PROT(- sizeof(canary_t)), new_capacity * sizeof(elem) ON_CANARY_PROT(+ 2 * sizeof(elem)));
     if (tmp_ptr == NULL)
     {   
         stk->capacity = -1;                               
@@ -145,10 +151,12 @@ int stack_resize(Stack *stk, ssize_t new_capacity)
 
     stk->data     = tmp_ptr;
     stk->capacity = new_capacity;
-
+    ON_CANARY_PROT
+    (
     *((canary_t*)stk->data) = ARR_CANARY;
     stk->data   = (elem*)((canary_t*)stk->data + 1);     
     *((canary_t*)((char*)stk->data +  new_capacity * sizeof(elem) + sizeof(canary_t))) = ARR_CANARY;
+    )
 
     ON_HASH_PROT(stack_rehash(stk));
     
@@ -173,9 +181,10 @@ int stack_poison_get(Stack *stk, size_t size, size_t capacity)
     return stk->code_of_error;
 }
 
-ON_HASH_PROT((void stack_rehash(Stack *stk)
+ON_HASH_PROT(
+void stack_rehash(Stack *stk)
 {   
     stk->hash        = hash(stk->data, stk->capacity * sizeof(elem));
     stk->hash_struct = hash(stk, sizeof(Stack) - sizeof(stk->hash_struct) - 4);
 }
-))
+)

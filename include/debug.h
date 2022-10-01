@@ -3,6 +3,8 @@
 
 #define DBG printf("%s:%d -- %s\n", __FILE__, __LINE__, __FUNCTION__);
 
+#define COMMA ,
+
 #define SHOW_ELEMENTS(stk)  static ssize_t counter = stk.size - 1;                                \
                             FILE *elements = fopen("elements_of_stack.txt", "w");                 \
                             while(counter >= 0)                                                   \
@@ -43,12 +45,20 @@ enum errors_in_process
 
 #define PRINT_ERROR(testing_var, code_of_error) (testing_var & code_of_error) ? fprintf(log_file, "%s\n", #code_of_error) : 0;
 
-// #define HASH_PROT
+#define HASH_PROT
 
 #ifdef HASH_PROT
 #define ON_HASH_PROT(part_of_hash_prot) part_of_hash_prot 
 #else 
 #define ON_HASH_PROT(part_of_hash_prot1)
+#endif
+
+#define CANARY_PROT
+
+#ifdef CANARY_PROT
+#define ON_CANARY_PROT(part_of_canary_prot) part_of_canary_prot
+#else 
+#define ON_CANARY_PROT(part_of_canary_prot)
 #endif
 
 #endif 

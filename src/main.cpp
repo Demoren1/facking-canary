@@ -37,7 +37,7 @@ int main()
 
 int test_func(Stack *stk)
 {
-    stk->l_canary = 0;
+    *stk->data = 3333;
     ASSERT_OK(stk);
     return 1;
 }

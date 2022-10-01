@@ -21,17 +21,23 @@ unsigned int stack_error(Stack *stk)
     
         stk->code_of_error |= CHECK(stk->size > stk->capacity, STACK_ERROR_SIZE_BIGGER_CAPACITY);
 
+        ON_CANARY_PROT
+        (
         stk->code_of_error |= CHECK(stk->l_canary != STRUCT_CANARY, STACK_ERROR_LEFT_CANARY_DIED);
         
         stk->code_of_error |= CHECK(stk->r_canary != STRUCT_CANARY, STACK_ERROR_RIGHT_CANARY_DIED);
-
+        )
         if(!(stk->code_of_error & STACK_ERROR_MEMNULL_BUFF))
-        {
+       {
+            ON_CANARY_PROT
+            (
             stk->code_of_error |= CHECK((size_t) *((size_t*)((char*) stk->data - sizeof(ARR_CANARY))) != ARR_CANARY, STACK_ERROR_ARR_LEFT_CANARY_DIED);
             
             stk->code_of_error |= CHECK((size_t) *((size_t*)((char*)stk->data +  stk->capacity * sizeof(elem) + sizeof(ARR_CANARY))) != ARR_CANARY, STACK_ERROR_ARR_RIGHT_CANARY_DIED);
-            
-            ON_HASH_PROT(
+            )
+
+            ON_HASH_PROT
+            (
             stk->code_of_error |= CHECK(stk->hash != hash(stk->data, stk->capacity * sizeof(elem)), STACK_ERROR_WRONG_HASH);
 
             stk->code_of_error |= CHECK(stk->hash_struct != hash(stk, sizeof(Stack) - sizeof(stk->hash_struct) - 4), STACK_ERROR_WRONG_STRUCT_HASH);
@@ -97,14 +103,19 @@ void stack_dump(Stack *stk, const char* name_of_inner_func, const char* name_of_
         fprintf(log_file, "{\n \t size                = %zd;\n"         \
                             "\t capacity            = %zd \n"           \
                             "\t data[%p]                 \n"            \
-                            "\t left_arr_canary     = 0x%0lx\n"         \
-                            "\t right_arr_canary    = 0x%0lx\n"         \
-                            "\t left_struct_canary  = 0x%0lx\n"         \
-                            "\t right_struct_canary = 0x%0lx\n"         \
-               ON_HASH_PROT("\t hash                = 0x%0lx\n"         \
+             ON_CANARY_PROT("\t left_arr_canary     = 0x%0lx\n"          \
+                            "\t right_arr_canary    = 0x%0lx\n"          \
+                            "\t left_struct_canary  = 0x%0lx\n"          \
+                            "\t right_struct_canary = 0x%0lx\n"          )\
+               ON_HASH_PROT("\t hash                = 0x%0lx\n"          \
                             "\t struct hash         = 0x%0lx\n"),
-                        stk->size, stk->capacity, stk->data, (size_t) *((size_t*)((char*) stk->data - sizeof(ARR_CANARY))),
-                        (size_t) *((size_t*)((char*)stk->data + stk->capacity * sizeof(elem))), stk->l_canary, stk->r_canary ON_HASH_PROT((,stk->hash,)) ON_HASH_PROT(stk->hash_struct));
+                        stk->size, stk->capacity, stk->data ON_CANARY_PROT(COMMA) 
+                        ON_CANARY_PROT((size_t) *((size_t*)((char*) stk->data - sizeof(ARR_CANARY)))) ON_CANARY_PROT(COMMA)
+                        ON_CANARY_PROT((size_t) *((size_t*)((char*)stk->data + stk->capacity * sizeof(elem)))) ON_CANARY_PROT(COMMA)
+                        ON_CANARY_PROT(stk->l_canary) ON_CANARY_PROT(COMMA)
+                        ON_CANARY_PROT(stk->r_canary) ON_HASH_PROT(COMMA)
+                        ON_HASH_PROT(stk->hash)       ON_HASH_PROT(COMMA)  
+                        ON_HASH_PROT(stk->hash_struct) );
         for (int i = 0; i < stk->capacity; i++)
         {
             if (isnan(stk->data[i])) 
@@ -116,8 +127,8 @@ void stack_dump(Stack *stk, const char* name_of_inner_func, const char* name_of_
 
 }
 
-ON_HASH_PROT(long hash(void* v_arr, size_t size))
-ON_HASH_PROT(({
+long hash(void* v_arr, size_t size)
+{
     char* arr = (char*) v_arr;
 
     long hash = 0;
@@ -135,7 +146,7 @@ ON_HASH_PROT(({
 
     }
     return hash;
-}))
+}
 
 int stack_print_in_logs(int line, const char *function, const char *file_name)
 {
