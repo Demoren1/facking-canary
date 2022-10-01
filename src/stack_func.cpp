@@ -21,7 +21,7 @@ int stack_ctor(Stack *stk, ssize_t capacity, const char* name_function, const ch
     (
     (*((canary_t*)stk->data) = ARR_CANARY); 
     stk->data = (elem*)((canary_t*)stk->data + 1);     
-    *((canary_t*)((char*)stk->data +  capacity * sizeof(elem) + sizeof(canary_t))) = ARR_CANARY;
+    *((canary_t*)((char*)stk->data +  capacity * sizeof(elem) + sizeof(canary_t))) = ARR_CANARY; //todo  write(1, ptr, 0) == -1
     )
 
     stk->capacity      = capacity;

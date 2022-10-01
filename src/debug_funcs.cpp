@@ -9,11 +9,11 @@ static FILE *log_file = 0;
 
 unsigned int stack_error(Stack *stk)
 {
-    int stk_is_null = CHECK(!stk, STACK_ERROR_STK_WRONG_PTR);
+    int stk_is_null = CHECK(write(1, stk, 0) != -1,                 STACK_ERROR_STK_WRONG_PTR);
 
     if(!(stk_is_null & STACK_ERROR_STK_WRONG_PTR) && ((stk->code_of_error & STACK_ERROR_DOUBLE_CTOR) == 0)  && ((stk->code_of_error & STACK_ERROR_DOUBLE_DTOR) == 0))
     {
-        stk->code_of_error |= CHECK(!stk->data,                     STACK_ERROR_MEMNULL_BUFF); 
+        stk->code_of_error |= CHECK(write(1, stk->data, 0) != -1,   STACK_ERROR_MEMNULL_BUFF); 
 
         stk->code_of_error |= CHECK(stk->size < 0,                  STACK_ERROR_SIZE_SMALLER_ZERO);
         
