@@ -5,7 +5,7 @@
 #include "../include/debug.h"
 #include "../include/stack_objects.h"
 
-static FILE *log_file = open_with_no_buff("log_file.txt", "w"); // static, log open, log close
+static FILE *log_file = 0;
 
 unsigned int stack_error(Stack *stk)
 {
@@ -13,13 +13,13 @@ unsigned int stack_error(Stack *stk)
 
     if(!(stk_is_null & STACK_ERROR_STK_WRONG_PTR) && ((stk->code_of_error & STACK_ERROR_DOUBLE_CTOR) == 0)  && ((stk->code_of_error & STACK_ERROR_DOUBLE_DTOR) == 0))
     {
-        stk->code_of_error |= CHECK(!stk->data, STACK_ERROR_MEMNULL_BUFF); 
+        stk->code_of_error |= CHECK(!stk->data,                     STACK_ERROR_MEMNULL_BUFF); 
 
-        stk->code_of_error |= CHECK(stk->size < 0, STACK_ERROR_SIZE_SMALLER_ZERO);
+        stk->code_of_error |= CHECK(stk->size < 0,                  STACK_ERROR_SIZE_SMALLER_ZERO);
         
-        stk->code_of_error |= CHECK(stk->capacity < 0, STACK_ERROR_CAPACITY_SMALLER_ZERO);
+        stk->code_of_error |= CHECK(stk->capacity < 0,              STACK_ERROR_CAPACITY_SMALLER_ZERO);
     
-        stk->code_of_error |= CHECK(stk->size > stk->capacity, STACK_ERROR_SIZE_BIGGER_CAPACITY);
+        stk->code_of_error |= CHECK(stk->size > stk->capacity,      STACK_ERROR_SIZE_BIGGER_CAPACITY);
 
         ON_CANARY_PROT
         (
@@ -31,14 +31,14 @@ unsigned int stack_error(Stack *stk)
        {
             ON_CANARY_PROT
             (
-            stk->code_of_error |= CHECK((size_t) *((size_t*)((char*) stk->data - sizeof(ARR_CANARY))) != ARR_CANARY, STACK_ERROR_ARR_LEFT_CANARY_DIED);
+            stk->code_of_error |= CHECK((size_t) *((size_t*)((char*) stk->data - sizeof(ARR_CANARY))) != ARR_CANARY,                               STACK_ERROR_ARR_LEFT_CANARY_DIED);
             
             stk->code_of_error |= CHECK((size_t) *((size_t*)((char*)stk->data +  stk->capacity * sizeof(elem) + sizeof(ARR_CANARY))) != ARR_CANARY, STACK_ERROR_ARR_RIGHT_CANARY_DIED);
             )
 
             ON_HASH_PROT
             (
-            stk->code_of_error |= CHECK(stk->hash != hash(stk->data, stk->capacity * sizeof(elem)), STACK_ERROR_WRONG_HASH);
+            stk->code_of_error |= CHECK(stk->hash != hash(stk->data, stk->capacity * sizeof(elem)),                  STACK_ERROR_WRONG_HASH);
 
             stk->code_of_error |= CHECK(stk->hash_struct != hash(stk, sizeof(Stack) - sizeof(stk->hash_struct) - 4), STACK_ERROR_WRONG_STRUCT_HASH);
             )
@@ -97,10 +97,10 @@ void stack_dump(Stack *stk, const char* name_of_inner_func, const char* name_of_
     if (!(stk->code_of_error & STACK_ERROR_MEMNULL_BUFF || stk->code_of_error & STACK_ERROR_STK_WRONG_PTR))
     {
         fprintf(log_file, "\n %s() at %s (%d):\n", name_of_inner_func, name_of_inner_file, num_of_inner_str);
-        fprintf(log_file, "Stack[%p] (%s) \"%s\" at %s() at %s (%zd) \n", stk, (flag_of_error > 0) ? "ERROR" : "OK",
+        fprintf(LOG_FILE, "Stack[%p] (%s) \"%s\" at %s() at %s (%zd) \n", stk, (flag_of_error > 0) ? "ERROR" : "OK",
             stk->dump_info.name_of_variable, stk->dump_info.name_of_func, stk->dump_info.name_of_file, stk->dump_info.num_of_str);
 
-        fprintf(log_file, "{\n \t size                = %zd;\n"         \
+        fprintf(LOG_FILE, "{\n \t size                = %zd;\n"         \
                             "\t capacity            = %zd \n"           \
                             "\t data[%p]                 \n"            \
              ON_CANARY_PROT("\t left_arr_canary     = 0x%0lx\n"          \
@@ -119,9 +119,9 @@ void stack_dump(Stack *stk, const char* name_of_inner_func, const char* name_of_
         for (int i = 0; i < stk->capacity; i++)
         {
             if (isnan(stk->data[i])) 
-                fprintf(log_file,"   [%d] = %s\n", i, "NAN(POISON)");
+                fprintf(LOG_FILE,"   [%d] = %s\n", i, "NAN(POISON)");
             else 
-                fprintf(log_file," * [%d] = %g\n", i, stk->data[i]);
+                fprintf(LOG_FILE," * [%d] = %g\n", i, stk->data[i]);
         }
     } 
 
@@ -150,7 +150,18 @@ long hash(void* v_arr, size_t size)
 
 int stack_print_in_logs(int line, const char *function, const char *file_name)
 {
-    fprintf(log_file, "ERROR: Something go wrong on %d line, %s func, %s file\n", line, function, file_name);
+    fprintf(LOG_FILE, "ERROR: Something go wrong on %d line, %s func, %s file\n", line, function, file_name);
 
     return 0;
+}
+
+void open_logs()
+{
+    log_file = open_with_no_buff("log_file.txt", "w");
+    assert(log_file != NULL);
+}
+
+void close_logs()
+{
+    fclose(LOG_FILE);
 }

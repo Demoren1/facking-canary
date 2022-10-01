@@ -12,6 +12,8 @@ int main()
     ssize_t capacity = 10;
     Stack stack= {};
 
+    open_logs();
+    
     STACK_CTOR(&stack, capacity);
 
     for (int i = 1; i < 100; i++)
@@ -32,12 +34,14 @@ int main()
 
     stack_dtor(&stack); 
 
+    close_logs();
+
     return 0;
 }
 
 int test_func(Stack *stk)
 {
-    *stk->data = 3333;
+    //*stk->data = 3333;
     ASSERT_OK(stk);
     return 1;
 }

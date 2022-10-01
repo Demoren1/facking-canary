@@ -1,9 +1,14 @@
 #ifndef DEBUG_HEADER_GUARD
 #define DEBUG_HEADER_GUARD
 
+void open_logs();
+void close_logs();
+
 #define DBG printf("%s:%d -- %s\n", __FILE__, __LINE__, __FUNCTION__);
 
 #define COMMA ,
+
+#define LOG_FILE (assert(log_file != NULL && "Maybe you forgot to open log_file"), log_file)                               
 
 #define SHOW_ELEMENTS(stk)  static ssize_t counter = stk.size - 1;                                \
                             FILE *elements = fopen("elements_of_stack.txt", "w");                 \
@@ -43,7 +48,7 @@ enum errors_in_process
 
 #define CHECK(condition, code_of_error)  (condition) ? code_of_error : 0;
 
-#define PRINT_ERROR(testing_var, code_of_error) (testing_var & code_of_error) ? fprintf(log_file, "%s\n", #code_of_error) : 0;
+#define PRINT_ERROR(testing_var, code_of_error) (testing_var & code_of_error) ? fprintf(LOG_FILE, "%s\n", #code_of_error) : 0;
 
 #define HASH_PROT
 
