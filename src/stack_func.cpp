@@ -5,16 +5,15 @@
 #include "../include/debug.h"
 #include "../include/stack_objects.h"
 
-extern FILE* log_file;
-
 int stack_ctor(Stack *stk, ssize_t capacity, const char* name_function, const char* name_file, const char* name_variable, int num_line)            
 {   
     assert(stk != NULL);
-    
-    stk->flag++;
-    if (stk->flag != 1)
+
+    if(stk->flag & STACK_CREATED)
     {
         stk->code_of_error |= STACK_ERROR_DOUBLE_CTOR;
+
+        ASSERT_OK(stk);
     }
 
     stk->data   = (elem*) calloc(1, capacity * sizeof(elem) + 2 * sizeof(canary_t)); // todo rejimes
@@ -25,24 +24,26 @@ int stack_ctor(Stack *stk, ssize_t capacity, const char* name_function, const ch
     stk->capacity      = capacity;
     stk->size          = 0;
     stk->code_of_error = 0;
-    
+    stk->flag         |= STACK_CREATED;
+
     stk->r_canary = STRUCT_CANARY;
     stk->l_canary = STRUCT_CANARY;
     
     stk->dump_info ={};
 
-    stack_rehash(stk);
+    ON_HASH_PROT(stack_rehash(stk));       
 
     ASSERT_OK(stk);
-    
-    stack_dump_info_ctor(stk, name_function, name_file, name_variable, num_line) || ASSERTED();
 
-    stack_rehash(stk);
+    stack_dump_info_ctor(stk, name_function, name_file, name_variable, num_line);
 
-    stack_poison_get(stk, stk->size, stk->capacity) || ASSERTED();
+    ON_HASH_PROT(stack_rehash(stk));
+
+    stack_poison_get(stk, stk->size, stk->capacity);
     
     ASSERT_OK(stk);
-    return 1; //todo return error to user
+
+    return stk->code_of_error;
 }   
 
 int stack_dump_info_ctor(Stack *stk, const char* name_function, const char* name_file, const char* name_variable, int num_line)
@@ -54,10 +55,10 @@ int stack_dump_info_ctor(Stack *stk, const char* name_function, const char* name
     stk->dump_info.name_of_variable = name_variable + 1;
     stk->dump_info.num_of_str       = num_line;
 
-    stack_rehash(stk);
+    ON_HASH_PROT(stack_rehash(stk));
 
     ASSERT_OK(stk);
-    return 1;
+    return stk->code_of_error;
 }
 
 int stack_push(Stack *stk, elem value)
@@ -65,67 +66,68 @@ int stack_push(Stack *stk, elem value)
     ASSERT_OK(stk);
 
     if (stk->size + 1 >= stk->capacity)
-    {
-       fprintf(log_file,"\n" "size was %zd and capacity was %zd \n", stk->size, stk->capacity);
-            
-       stack_resize(stk, stk->capacity * 2) || ASSERTED();
+    {            
+       stack_resize(stk, stk->capacity * 2);
     }
     
-    stack_rehash(stk);
+    ON_HASH_PROT(stack_rehash(stk));
     ASSERT_OK(stk);
 
     stk->data[stk->size] = value;
     stk->size++;
     
-    stack_rehash(stk);
+    ON_HASH_PROT(stack_rehash(stk));
     ASSERT_OK(stk);
     
-    return 1;
+    return stk->code_of_error;
 }
 
-elem stack_pop(Stack *stk, int *pop_error)
+elem stack_pop(Stack *stk, elem *value)
 {
     ASSERT_OK(stk);
 
-    elem value = 0;
-
     if (stk->size <= 0)
     {
+        stk->code_of_error |= STACK_ERROR_POP_FROM_VOID_STACK;
         stk->size = -1; 
         ASSERT_OK(stk);
         return -1;
     }
 
-    if (stk->size * 4 < stk->capacity)
+    if ((stk->size+1) * 4 < stk->capacity)
     {
-        fprintf(log_file,"\n" "size was %zd and capacity was %zd \n", stk->size, stk->capacity); 
-            
-        stack_resize(stk, stk->capacity / 2) || ASSERTED();
+        stack_resize(stk, stk->capacity / 2);
     }
 
-    value = stk->data[stk->size-1];
+    *value = stk->data[stk->size-1];
 
-    stack_poison_get(stk, stk->size, stk->capacity) || ASSERTED();
+    stack_poison_get(stk, stk->size, stk->capacity);
     stk->size--;
 
-    stack_rehash(stk);
+    ON_HASH_PROT(stack_rehash(stk));
     ASSERT_OK(stk);
-    return value;
+    
+    return stk->code_of_error;
 }
 
 int stack_dtor(Stack *stk)
-{
-    ASSERT_OK(stk);
-    stack_poison_get(stk, 0, stk->capacity);
-    stk->flag++;
-    stk->capacity = -1;
-    stk->size     = -1;
-    if (stk->flag != 2)
+{   
+    if(stk->flag & STACK_DESTROYED)
     {
         stk->code_of_error |= STACK_ERROR_DOUBLE_DTOR;
+        stack_err_decoder(stk->code_of_error);
+        return stk->code_of_error;
     }
-
-    free((char*) stk->data - sizeof(canary_t));
+    
+    stk->flag |= STACK_DESTROYED;
+    ON_HASH_PROT(stack_rehash(stk));
+    ASSERT_OK(stk);
+    
+    stack_poison_get(stk, 0, stk->capacity);
+    stk->capacity = -1;
+    stk->size     = -1;
+    
+    free((canary_t*) stk->data - 1);
 
     return 0;
 }
@@ -134,13 +136,13 @@ int stack_resize(Stack *stk, ssize_t new_capacity)
 {   
     ASSERT_OK(stk);
 
-    elem* tmp_ptr = (elem*) realloc((char*)stk->data - sizeof(canary_t), new_capacity * sizeof(elem) + 2 * sizeof(canary_t));
-
+    elem* tmp_ptr = (elem*) realloc((canary_t*)stk->data - 1, new_capacity * sizeof(elem) + 2 * sizeof(elem));
     if (tmp_ptr == NULL)
-    {
+    {   
         stk->capacity = -1;                               
         return 0;
     }
+
     stk->data     = tmp_ptr;
     stk->capacity = new_capacity;
 
@@ -148,13 +150,13 @@ int stack_resize(Stack *stk, ssize_t new_capacity)
     stk->data   = (elem*)((canary_t*)stk->data + 1);     
     *((canary_t*)((char*)stk->data +  new_capacity * sizeof(elem) + sizeof(canary_t))) = ARR_CANARY;
 
-    stack_rehash(stk);
+    ON_HASH_PROT(stack_rehash(stk));
     
-    stack_poison_get(stk, stk->size, stk->capacity) || ASSERTED();
+    stack_poison_get(stk, stk->size, stk->capacity);
     
     ASSERT_OK(stk);
 
-    return 1;
+    return stk->code_of_error;
 }
 
 int stack_poison_get(Stack *stk, size_t size, size_t capacity)
@@ -166,13 +168,14 @@ int stack_poison_get(Stack *stk, size_t size, size_t capacity)
         *(stk->data + i) = NAN;
     }
 
-    stack_rehash(stk);
+    ON_HASH_PROT(stack_rehash(stk));
     ASSERT_OK(stk);
-    return 1;
+    return stk->code_of_error;
 }
 
-void stack_rehash(Stack *stk)
+ON_HASH_PROT((void stack_rehash(Stack *stk)
 {   
     stk->hash        = hash(stk->data, stk->capacity * sizeof(elem));
     stk->hash_struct = hash(stk, sizeof(Stack) - sizeof(stk->hash_struct) - 4);
 }
+))

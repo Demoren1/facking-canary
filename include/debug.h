@@ -12,9 +12,9 @@
                                 if (counter % 10 == 0)                                            \
                                     fprintf(elements, "\n");                                      \
                             }                                                                     \
-                            fprintf(log_file, "\n");                 
+                            fprintf(elements, "\n");                 
 
-#define ASSERTED() fprintf(log_file, "ERROR: Something go wrong on %d line, %s func, %s file\n", __LINE__, __FUNCTION__, __FILE__);
+#define ASSERTED() stack_print_in_logs(__LINE__, __FUNCTION__, __FILE__);
 enum errors 
 {
     STACK_ERROR_MEMNULL_BUFF          = 1 << 0,
@@ -29,11 +29,26 @@ enum errors
     STACK_ERROR_WRONG_STRUCT_HASH     = 1 << 9,
     STACK_ERROR_DOUBLE_CTOR           = 1 << 10,
     STACK_ERROR_DOUBLE_DTOR           = 1 << 11,
-    STACK_ERROR_STK_WRONG_PTR         = 1 << 12
+    STACK_ERROR_STK_WRONG_PTR         = 1 << 12,
+    STACK_ERROR_POP_FROM_VOID_STACK   = 1 << 13
+};
+
+enum errors_in_process
+{
+    STACK_CREATED              = 1 << 0,
+    STACK_DESTROYED            = 1 << 1,
 };
 
 #define CHECK(condition, code_of_error)  (condition) ? code_of_error : 0;
 
 #define PRINT_ERROR(testing_var, code_of_error) (testing_var & code_of_error) ? fprintf(log_file, "%s\n", #code_of_error) : 0;
+
+// #define HASH_PROT
+
+#ifdef HASH_PROT
+#define ON_HASH_PROT(part_of_hash_prot) part_of_hash_prot 
+#else 
+#define ON_HASH_PROT(part_of_hash_prot1)
+#endif
 
 #endif 

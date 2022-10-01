@@ -7,33 +7,30 @@
 
 int test_func(Stack *stk);
 
-FILE *log_file = no_buff_open("log_file.txt", "w");
-
 int main()
 {   
     ssize_t capacity = 10;
     Stack stack= {};
 
-    STACK_CTOR(&stack, capacity) || ASSERTED();
+    STACK_CTOR(&stack, capacity);
 
     for (int i = 1; i < 100; i++)
     {
-        stack_push(&stack, i*i) || ASSERTED();
+        stack_push(&stack, i*i);
     }
 
-    int pop_error  = 0;
+    elem value = 0;
 
-    for (int i = 1; i < 50; i++)
+    for (int i = 1; i < 100; i++)
     {
-        stack_pop(&stack, &pop_error) || ASSERTED();
-        !pop_error || ASSERTED();
+        stack_pop(&stack, &value);
     }
     
     SHOW_ELEMENTS(stack);
 
     test_func(&stack);
 
-    stack_dtor(&stack); //todo ctor-dtor
+    stack_dtor(&stack); 
 
     return 0;
 }

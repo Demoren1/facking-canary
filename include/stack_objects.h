@@ -34,7 +34,7 @@ typedef struct
     ssize_t capacity;
     info_of_funcs dump_info;
     long hash;
-    unsigned int code_of_error;
+    unsigned int code_of_error = 0;
     char flag = 0;
     size_t r_canary;
     long hash_struct;
@@ -52,7 +52,7 @@ int stack_push(Stack *stk, elem value);
 
 int stack_resize(Stack *stk, ssize_t new_capacity);
 
-elem stack_pop(Stack *stk, int *value);
+elem stack_pop(Stack *stk, elem *value);
 
 int stack_poison_get(Stack *stk, size_t size, size_t capacity);
 
@@ -64,6 +64,8 @@ long hash(void* arr, size_t size);
 
 void stack_rehash(Stack *stk);
 
-FILE* no_buff_open(const char* name_file, const char* regime);
+int stack_print_in_logs(int line, const char *function, const char *file_name);
+
+FILE* open_with_no_buff(const char* name_file, const char* regime);
 
 #endif

@@ -5,13 +5,13 @@
 #include "../include/debug.h"
 #include "../include/stack_objects.h"
 
-extern FILE* log_file; // static, log open, log close
+static FILE *log_file = open_with_no_buff("log_file.txt", "w"); // static, log open, log close
 
 unsigned int stack_error(Stack *stk)
 {
-    int stk_check = CHECK(!stk, STACK_ERROR_STK_WRONG_PTR);
-    
-    if(!(stk_check & STACK_ERROR_STK_WRONG_PTR))
+    int stk_is_null = CHECK(!stk, STACK_ERROR_STK_WRONG_PTR);
+
+    if(!(stk_is_null & STACK_ERROR_STK_WRONG_PTR) && ((stk->code_of_error & STACK_ERROR_DOUBLE_CTOR) == 0)  && ((stk->code_of_error & STACK_ERROR_DOUBLE_DTOR) == 0))
     {
         stk->code_of_error |= CHECK(!stk->data, STACK_ERROR_MEMNULL_BUFF); 
 
@@ -31,14 +31,21 @@ unsigned int stack_error(Stack *stk)
             
             stk->code_of_error |= CHECK((size_t) *((size_t*)((char*)stk->data +  stk->capacity * sizeof(elem) + sizeof(ARR_CANARY))) != ARR_CANARY, STACK_ERROR_ARR_RIGHT_CANARY_DIED);
             
+            ON_HASH_PROT(
             stk->code_of_error |= CHECK(stk->hash != hash(stk->data, stk->capacity * sizeof(elem)), STACK_ERROR_WRONG_HASH);
 
             stk->code_of_error |= CHECK(stk->hash_struct != hash(stk, sizeof(Stack) - sizeof(stk->hash_struct) - 4), STACK_ERROR_WRONG_STRUCT_HASH);
+            )
         }
     }
     else 
-    {
-        stack_err_decoder(stk_check);
+    {   
+        if (stk_is_null == 0)
+        {
+            stack_err_decoder(stk->code_of_error);
+            return stk->code_of_error;
+        }
+        stack_err_decoder(stk_is_null);
         abort();
     }
     return stk->code_of_error;
@@ -71,6 +78,12 @@ void stack_err_decoder(unsigned int code_of_error)
     PRINT_ERROR(code_of_error, STACK_ERROR_DOUBLE_DTOR);
 
     PRINT_ERROR(code_of_error, STACK_ERROR_STK_WRONG_PTR);
+
+    PRINT_ERROR(code_of_error, STACK_ERROR_CAPACITY_SMALLER_ZERO);
+
+    PRINT_ERROR(code_of_error, STACK_ERROR_DOUBLE_DTOR);
+
+    PRINT_ERROR(code_of_error, STACK_ERROR_POP_FROM_VOID_STACK);
 }
 
 void stack_dump(Stack *stk, const char* name_of_inner_func, const char* name_of_inner_file, int num_of_inner_str, unsigned int flag_of_error)
@@ -88,10 +101,10 @@ void stack_dump(Stack *stk, const char* name_of_inner_func, const char* name_of_
                             "\t right_arr_canary    = 0x%0lx\n"         \
                             "\t left_struct_canary  = 0x%0lx\n"         \
                             "\t right_struct_canary = 0x%0lx\n"         \
-                            "\t hash                = 0x%0lx\n"         \
-                            "\t struct hash         = 0x%0lx\n",
+               ON_HASH_PROT("\t hash                = 0x%0lx\n"         \
+                            "\t struct hash         = 0x%0lx\n"),
                         stk->size, stk->capacity, stk->data, (size_t) *((size_t*)((char*) stk->data - sizeof(ARR_CANARY))),
-                        (size_t) *((size_t*)((char*)stk->data + stk->capacity * sizeof(elem))), stk->l_canary, stk->r_canary, stk->hash, stk->hash_struct);
+                        (size_t) *((size_t*)((char*)stk->data + stk->capacity * sizeof(elem))), stk->l_canary, stk->r_canary ON_HASH_PROT((,stk->hash,)) ON_HASH_PROT(stk->hash_struct));
         for (int i = 0; i < stk->capacity; i++)
         {
             if (isnan(stk->data[i])) 
@@ -103,9 +116,8 @@ void stack_dump(Stack *stk, const char* name_of_inner_func, const char* name_of_
 
 }
 
-
-long hash(void* v_arr, size_t size)
-{
+ON_HASH_PROT(long hash(void* v_arr, size_t size))
+ON_HASH_PROT(({
     char* arr = (char*) v_arr;
 
     long hash = 0;
@@ -123,4 +135,11 @@ long hash(void* v_arr, size_t size)
 
     }
     return hash;
+}))
+
+int stack_print_in_logs(int line, const char *function, const char *file_name)
+{
+    fprintf(log_file, "ERROR: Something go wrong on %d line, %s func, %s file\n", line, function, file_name);
+
+    return 0;
 }
