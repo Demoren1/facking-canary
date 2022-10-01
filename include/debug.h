@@ -10,6 +10,8 @@ void close_logs();
 
 #define COMMA ,
 
+#define END_DUMP() fputs("-----------------------------------------------------------------------------------------------------------------------\n\n", log_file);
+
 #define LOG_FILE (assert(log_file != NULL && "Maybe you forgot to open log_file"), log_file)                               
 
 #define SHOW_ELEMENTS(stk)  static ssize_t counter = stk.size - 1;                                \
@@ -40,14 +42,16 @@ enum errors
     STACK_ERROR_DOUBLE_DTOR           = 1 << 11,
     STACK_ERROR_STK_WRONG_PTR         = 1 << 12,
     STACK_ERROR_POP_FROM_VOID_STACK   = 1 << 13,
-    STACK_ERROR_WRONG_REALLOC         = 1 << 14
+    STACK_ERROR_WRONG_REALLOC         = 1 << 14,
+    STACK_ERROR_VALUE_PTR_NULL        = 1 << 15 
 };
 
 enum errors_in_process
 {
     STACK_CREATED              = 1 << 0,
     STACK_DESTROYED            = 1 << 1,
-    WRONG_REALLOC              = 1 << 2
+    WRONG_REALLOC              = 1 << 2,
+    VALUE_PTR_NULL             = 1 << 3
 };
 
 #define CHECK(condition, code_of_error)  (condition) ? code_of_error : 0;

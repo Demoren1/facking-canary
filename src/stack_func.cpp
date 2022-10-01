@@ -95,9 +95,14 @@ elem stack_pop(Stack *stk, elem *value)
     if (stk->size <= 0)
     {
         stk->code_of_error |= STACK_ERROR_POP_FROM_VOID_STACK;
-        stk->size = -1; 
         ASSERT_OK(stk);
         return -1;
+    }
+
+    if(value == NULL)
+    {
+        stk->code_of_error |= STACK_ERROR_VALUE_PTR_NULL;
+        ASSERT_OK(stk);
     }
 
     if ((stk->size+1) * 4 < stk->capacity)

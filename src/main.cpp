@@ -21,16 +21,16 @@ int main()
         stack_push(&stack, i*i);
     }
 
+    test_func(&stack);
+    
     elem value = 0;
 
-    for (int i = 1; i < 100; i++)
+    for (int i = 1; i < 10; i++)
     {
         stack_pop(&stack, &value);
     }
     
     SHOW_ELEMENTS(stack);
-
-    test_func(&stack);
 
     stack_dtor(&stack); 
 
@@ -41,7 +41,7 @@ int main()
 
 int test_func(Stack *stk)
 {
-    //stk = NULL;
+    stk->l_canary = 0;
     
     ASSERT_OK(stk);
     return 1;
