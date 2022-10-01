@@ -1,6 +1,8 @@
 #ifndef DEBUG_HEADER_GUARD
 #define DEBUG_HEADER_GUARD
 
+#include <unistd.h>
+
 void open_logs();
 void close_logs();
 

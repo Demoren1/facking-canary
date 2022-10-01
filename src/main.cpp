@@ -41,7 +41,8 @@ int main()
 
 int test_func(Stack *stk)
 {
-    //*stk->data = 3333;
+    //stk = NULL;
+    
     ASSERT_OK(stk);
     return 1;
 }
